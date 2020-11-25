@@ -35,7 +35,6 @@ type Config struct {
 	Hostname string `json:"hostname"`
 	Port     string `json:"port"`
 	Realm    string `json:"realm"`
-	Domain   string `json:"domain"`
 }
 
 type context struct {
@@ -63,7 +62,7 @@ func (c *Client) NegotiateContext(username, password string) (string, *time.Time
 		host = c.HostIP
 	}
 
-	cfg, err := config.NewFromString(generateConfig(c.Realm, c.HostIP, c.Domain))
+	cfg, err := config.NewFromString(generateConfig(c.Realm, c.HostIP))
 	if err != nil {
 		return "", nil, fmt.Errorf("Failed to load generated config: %w", err)
 	}
@@ -143,8 +142,8 @@ func (c *Client) NegotiateContext(username, password string) (string, *time.Time
 	return keyname, &expiry, nil
 }
 
-func (c *Client) Exchange(m *dns.Msg, addr string) (r *dns.Msg, rtt time.Duration, err error) {
-	co, err := c.Dial(addr)
+func (c *Client) Exchange(m *dns.Msg) (r *dns.Msg, rtt time.Duration, err error) {
+	co, err := c.Dial(net.JoinHostPort(c.HostIP, c.Port))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -342,7 +341,7 @@ func (c *Client) verify(stripped []byte, t *dns.TSIG, name, secret string) error
 	return nil
 }
 
-func generateConfig(realm, host, domain string) string {
+func generateConfig(realm, host string) string {
 	return `
 [libdefaults]
     default_realm = ` + realm + `
@@ -356,7 +355,6 @@ func generateConfig(realm, host, domain string) string {
     ` + realm + ` = {
         kdc = ` + host + `
         admin_server = ` + host + `
-        default_domain = ` + domain + `
     }
 `
 }

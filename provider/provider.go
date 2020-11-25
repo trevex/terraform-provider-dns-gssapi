@@ -14,47 +14,50 @@ type ProviderContext struct {
 	Keyname string
 }
 
-// Provider -
-func Provider() *schema.Provider {
-	return &schema.Provider{
-		Schema: map[string]*schema.Schema{
-			"ip": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_IP", ""),
+func New(version string) func() *schema.Provider {
+	return func() *schema.Provider {
+		p := &schema.Provider{
+			Schema: map[string]*schema.Schema{
+				"ip": {
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_IP", ""),
+				},
+				"hostname": {
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_HOSTNAME", nil),
+				},
+				"port": {
+					Type:        schema.TypeInt,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PORT", 53),
+				},
+				"realm": {
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_REALM", nil),
+				},
+				"username": {
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_USERNAME", nil),
+				},
+				"password": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PASSWORD", nil),
+				},
 			},
-			"hostname": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_HOSTNAME", nil),
+			ResourcesMap: map[string]*schema.Resource{
+				"dns_record_set": resourceRecordSet(),
 			},
-			"port": &schema.Schema{
-				Type:        schema.TypeInt,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PORT", 53),
-			},
-			"realm": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_REALM", nil),
-			},
-			"username": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_USERNAME", nil),
-			},
-			"password": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PASSWORD", nil),
-			},
-		},
-		ResourcesMap: map[string]*schema.Resource{
-			"dns_record_set": resourceRecordSet(),
-		},
-		DataSourcesMap:       map[string]*schema.Resource{},
-		ConfigureContextFunc: providerConfigure,
+			DataSourcesMap:       map[string]*schema.Resource{},
+			ConfigureContextFunc: providerConfigure,
+		}
+
+		return p
 	}
 }
 

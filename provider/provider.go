@@ -20,38 +20,38 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"ip": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_IP", ""),
 			},
 			"hostname": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_HOSTNAME", nil),
 			},
 			"port": &schema.Schema{
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PORT", 53),
 			},
 			"realm": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_REALM", nil),
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_USERNAME", nil),
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PASSWORD", nil),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			// "dns_gssapi_record_set": recordSet(),
+			"dns_gssapi_record_set": resourceRecordSet(),
 		},
 		DataSourcesMap:       map[string]*schema.Resource{},
 		ConfigureContextFunc: providerConfigure,

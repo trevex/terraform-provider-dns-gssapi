@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"net"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -111,7 +112,7 @@ func resourceRecordSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	fqdn := resourceFQDN(d)
 
 	msg := new(dns.Msg)
-	msg.SetUpdate(d.Get("zone").(string))
+	msg.SetUpdate(resourceZone(d))
 
 	if d.HasChange("rrdatas") {
 		o, n := d.GetChange("rrdatas")
@@ -122,19 +123,25 @@ func resourceRecordSetUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		// Loop through all the old addresses and remove them
 		for _, rrData := range remove {
-			rrRemove, _ := dns.NewRR(fmt.Sprintf("%s %d %s %s", fqdn, ttl, rType, rrData.(string)))
+			rrRemove, err := dns.NewRR(fmt.Sprintf("%s %d %s %s", fqdn, ttl, rType, rrData.(string)))
+			if err != nil {
+				return err
+			}
 			msg.Remove([]dns.RR{rrRemove})
 		}
 		// Loop through all the new addresses and insert them
 		for _, rrData := range insert {
-			rrInsert, _ := dns.NewRR(fmt.Sprintf("%s %d A %s", fqdn, ttl, rType, rrData.(string)))
+			rrInsert, err := dns.NewRR(fmt.Sprintf("%s %d %s %s", fqdn, ttl, rType, rrData.(string)))
+			if err != nil {
+				return err
+			}
 			msg.Insert([]dns.RR{rrInsert})
 		}
 
 		r, err := exchange(msg, meta)
 		if err != nil {
 			d.SetId("")
-			return fmt.Errorf("Error updating DNS record: %s", err)
+			return fmt.Errorf("Error updating DNS record: %s\nMessage: %s", err, msg.String())
 		}
 		if r.Rcode != dns.RcodeSuccess {
 			d.SetId("")
@@ -153,9 +160,12 @@ func resourceRecordSetDelete(d *schema.ResourceData, meta interface{}) error {
 	rrType := resourceType(d)
 
 	msg := new(dns.Msg)
-	msg.SetUpdate(d.Get("zone").(string))
+	msg.SetUpdate(resourceZone(d))
 
-	rr, _ := dns.NewRR(fmt.Sprintf("%s 0 %s", fqdn, dns.TypeToString[rrType]))
+	rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s", fqdn, dns.TypeToString[rrType]))
+	if err != nil {
+		return err
+	}
 	msg.RemoveRRset([]dns.RR{rr})
 
 	r, err := exchange(msg, meta)
@@ -170,11 +180,15 @@ func resourceRecordSetDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFQDN(d *schema.ResourceData) string {
-	fqdn := d.Get("zone").(string)
+	fqdn := resourceZone(d)
 	if name, ok := d.GetOk("name"); ok {
 		fqdn = fmt.Sprintf("%s.%s", name.(string), fqdn)
 	}
 	return fqdn
+}
+
+func resourceZone(d *schema.ResourceData) string {
+	return strings.TrimSuffix(d.Get("zone").(string), ".") + "."
 }
 
 func resourceType(d *schema.ResourceData) uint16 {
@@ -198,7 +212,13 @@ Retry:
 	msg.SetTsig(pc.Keyname, client.TSIGGSS, 300, time.Now().Unix())
 
 	r, _, err := c.Exchange(msg)
-
+	if isTimeout(err) && retries > 0 {
+		retries--
+		goto Retry
+	}
+	if err != nil {
+		return nil, err
+	}
 	if r.Truncated {
 		if retryTCP {
 			switch c.Net {
@@ -222,11 +242,8 @@ Retry:
 		retries--
 		goto Retry
 	}
-	if isTimeout(err) && retries > 0 {
-		retries--
-		goto Retry
-	}
-	return r, err
+
+	return r, nil
 }
 
 func isTimeout(err error) bool {

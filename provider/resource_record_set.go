@@ -1,3 +1,5 @@
+// Heavily based on the official terraform dns provider, see LICENSE.
+
 package provider
 
 import (

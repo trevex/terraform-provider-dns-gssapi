@@ -20,7 +20,7 @@ provider "dns-gssapi" {
   password = var.password
 }
 
-resource "dns_gssapi_record_set" "test" {
+resource "dns_record_set" "test" {
   provider = dns-gssapi
 
   zone    = "envdevel.lan"

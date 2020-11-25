@@ -51,7 +51,7 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"dns_gssapi_record_set": resourceRecordSet(),
+			"dns_record_set": resourceRecordSet(),
 		},
 		DataSourcesMap:       map[string]*schema.Resource{},
 		ConfigureContextFunc: providerConfigure,

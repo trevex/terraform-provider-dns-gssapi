@@ -49,6 +49,11 @@ func New(version string) func() *schema.Provider {
 					Sensitive:   true,
 					DefaultFunc: schema.EnvDefaultFunc("DNS_GSSAPI_PASSWORD", nil),
 				},
+				"skip_verify": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("DNS_SKIP_VERIFY", false),
+				},
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				"dns_record_set": resourceRecordSet(),
@@ -68,6 +73,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	realm := d.Get("realm").(string)
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
+	skipVerify := d.Get("skip_verify").(bool)
 
 	var diags diag.Diagnostics
 	// if username == "" || password == "" {
@@ -84,6 +90,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		Port:     fmt.Sprintf("%d", port),
 		Realm:    realm,
 	})
+	c.SkipVerify = skipVerify
 	keyname, _, err := c.NegotiateContext(username, password)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{

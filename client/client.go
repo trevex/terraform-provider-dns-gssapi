@@ -47,6 +47,8 @@ type Client struct {
 	Config
 	m   sync.RWMutex
 	ctx map[string]context
+
+	SkipVerify bool
 }
 
 func NewClient(cfg *Config) *Client {
@@ -310,6 +312,10 @@ func (c *Client) verify(stripped []byte, t *dns.TSIG, name, secret string) error
 
 	if strings.ToLower(t.Algorithm) != tsig.GSS {
 		return dns.ErrKeyAlg
+	}
+
+	if c.SkipVerify {
+		return nil
 	}
 
 	c.m.RLock()

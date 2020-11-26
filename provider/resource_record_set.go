@@ -208,6 +208,8 @@ func exchange(msg *dns.Msg, meta interface{}) (*dns.Msg, error) {
 	retryTCP := false
 	retries := 5
 
+	msg.RecursionDesired = false
+	msg.Compress = false
 Retry:
 	msg.SetTsig(pc.Keyname, client.TSIGGSS, 300, time.Now().Unix())
 
